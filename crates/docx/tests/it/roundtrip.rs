@@ -1551,7 +1551,7 @@ fn watermark_roundtrips() {
 /// the style's closing quote.
 #[test]
 fn watermark_font_roundtrips_through_the_textpath_style() {
-    for font in ["Georgia", "Bob's Serif", "A;Named:Font", "Quote\"Inside", "Ends with \\", "All \"of\" ;it: 'here\\"] {
+    for font in ["Georgia", "Bob's Serif", "A;Named:Font", "Quote\"Inside", "Ends with \\", "All \"of\" ;it: 'here\\", "'Serif'", "Trailing'"] {
         let mut d = doc_with(vec![Paragraph::with_text("Body", CharProps::default())]);
         d.settings.watermark = Some(Watermark { font: font.into(), ..Default::default() });
         assert_eq!(rt(&d).settings.watermark.map(|w| w.font), Some(font.into()), "{font:?}");

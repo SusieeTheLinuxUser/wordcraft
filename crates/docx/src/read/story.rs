@@ -1751,7 +1751,7 @@ impl Reader<'_> {
             let font = tp
                 .attr("style")
                 .and_then(|s| vml_style(s, "font-family"))
-                .map(|f| css_string(f.trim_matches(|c: char| c == '"' || c == '\'' || c.is_whitespace())).chars().take(100).collect::<String>())
+                .map(|f| css_string(f).chars().take(100).collect::<String>())
                 .filter(|f| !f.is_empty());
             // The shapetype's WordArt shape (`o:spt` 136-175) bends the text like DrawingML's warp.
             let warp = vml_spt(shape, shapetype, type_id)
@@ -2231,11 +2231,14 @@ fn vml_style<'a>(style: &'a str, key: &str) -> Option<&'a str> {
     style.rsplit(';').filter_map(|d| d.split_once(':')).find(|(k, _)| k.trim().eq_ignore_ascii_case(key)).map(|(_, v)| v.trim())
 }
 
-/// A `v:textpath` style value with the writer's CSS escapes mapped back: `\` + up to six hex
-/// digits + one optional space is that character, and `\x` is `x` (#3994; `write::watermark::run`
-/// writes them). Word writes font names raw, and a lone trailing `\` none of CSS would accept
-/// stays literal.
+/// A `v:textpath` style value with one pair of surrounding quotes removed and the writer's CSS
+/// escapes mapped back: `\` + up to six hex digits + one optional space is that character, and
+/// `\x` is `x` (#3994; `write::watermark::run` writes them). Only the surrounding pair goes, so a
+/// font name that starts or ends with an apostrophe keeps it. Word writes font names raw, and a
+/// lone trailing `\` none of CSS would accept stays literal.
 fn css_string(v: &str) -> String {
+    let v = v.trim();
+    let v = ['"', '\''].into_iter().find_map(|q| v.strip_prefix(q)?.strip_suffix(q)).unwrap_or(v).trim();
     let mut out = String::with_capacity(v.len());
     let mut chars = v.chars();
     while let Some(c) = chars.next() {
@@ -2372,7 +2375,7 @@ fn vml_watermark(shape: &El) -> Option<wordcraft_doc::Watermark> {
     let font = tp
         .attr("style")
         .and_then(|s| vml_style(s, "font-family"))
-        .map(|f| css_string(f.trim_matches(|c: char| c == '"' || c == '\'' || c.is_whitespace())).chars().take(100).collect::<String>())
+        .map(|f| css_string(f).chars().take(100).collect::<String>())
         .filter(|f| !f.is_empty())
         .unwrap_or(default.font);
     let color = shape.attr("fillcolor").and_then(vml_color).unwrap_or(default.color);
