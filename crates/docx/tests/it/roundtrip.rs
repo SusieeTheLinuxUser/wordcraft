@@ -2712,3 +2712,29 @@ fn drop_cap_options_round_trip() {
         (Some(4), Some(true), None, None)
     );
 }
+
+/// #3000: a drop cap whose text inherits its complex-script size from the document defaults is
+/// saved with that size enlarged too — `w:szCs` beside `w:sz` — or an Arabic letter would stay at
+/// the text's size. Differing Latin and complex-script sizes each grow from their own: 3 lines of
+/// 12 pt → 53.14 pt (106), of 16 pt → 70.86 pt (142).
+#[test]
+fn a_drop_caps_inherited_complex_script_size_is_enlarged() {
+    let mut p = Paragraph::with_text("مرحبا بالعالم", CharProps::default());
+    p.props.drop_cap = Some(3);
+    let mut d = doc_with(vec![p]);
+    d.styles.default_chr.size = Some(12.0);
+    d.styles.default_chr.size_cs = Some(16.0);
+    let bytes = wordcraft_docx::write(&d).expect("write");
+    let mut z = zip::ZipArchive::new(std::io::Cursor::new(&bytes)).unwrap();
+    let mut xml = String::new();
+    std::io::Read::read_to_string(&mut z.by_name("word/document.xml").unwrap(), &mut xml).unwrap();
+    assert!(xml.contains(r#"<w:sz w:val="106"/><w:szCs w:val="142"/>"#), "both scripts' drawn sizes on the letter's run: {xml}");
+    let r = wordcraft_docx::read(&bytes).expect("read");
+    let got = paras(&r);
+    assert_eq!(got.len(), 1, "the letter merges back into its paragraph");
+    assert!(
+        got[0].runs.iter().all(|r| (r.props.size, r.props.size_cs) == (None, None)),
+        "the letter inherits the text's sizes again: {:?}",
+        got[0].runs
+    );
+}
