@@ -282,7 +282,11 @@ impl Reader<'_> {
                         // The same for the size: the letter carries the enlarged one the file's
                         // writer computed, and the layout sizes a dropped letter from the text
                         // around it — keeping it would render the enlargement twice (#3000).
-                        let (text_size, text_size_cs) = p.runs.first().map_or((None, None), |r| (r.props.size, r.props.size_cs));
+                        // A leading bookmark or comment anchor is a run of its own: take the size from the first run with text.
+                        let (text_size, text_size_cs) = p
+                            .run_ranges()
+                            .find(|(range, _)| p.text.get(range.clone()).is_some_and(|t| t.chars().any(|c| c != wordcraft_doc::para::OBJ)))
+                            .map_or((None, None), |(_, props)| (props.size, props.size_cs));
                         for r in &mut first.runs {
                             r.props.size = text_size;
                             r.props.size_cs = text_size_cs;
