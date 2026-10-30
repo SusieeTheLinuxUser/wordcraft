@@ -3380,6 +3380,21 @@ fn a_drop_caps_letter_skips_a_leading_bookmark_for_the_texts_size() {
     assert_eq!(letter, Some(Some(12.0)), "the letter keeps the text's size, not the bookmark's: {:?}", p[0].runs);
 }
 
+/// #3000: a run in the drop cap's frame with a size of its own keeps it; only the runs at the
+/// letter's enlarged size take the text's size back.
+#[test]
+fn a_drop_cap_frames_other_sizes_are_kept() {
+    let d = read_body(
+        r#"<w:p><w:pPr><w:framePr w:dropCap="drop" w:lines="3" w:wrap="around" w:vAnchor="text" w:hAnchor="text"/></w:pPr><w:r><w:rPr><w:sz w:val="88"/></w:rPr><w:t>B</w:t></w:r><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>e</w:t></w:r></w:p>
+        <w:p><w:r><w:rPr><w:sz w:val="24"/></w:rPr><w:t>fore we start</w:t></w:r></w:p>"#,
+    );
+    let p = paras(&d);
+    assert_eq!(p.len(), 1);
+    let size = |s: &str| p[0].run_ranges().find(|(range, _)| p[0].text.get(range.clone()) == Some(s)).map(|(_, props)| props.size);
+    assert_eq!(size("B"), Some(Some(12.0)), "{:?}", p[0].runs);
+    assert_eq!(size("e"), Some(Some(10.0)), "{:?}", p[0].runs);
+}
+
 /// #2360: a `w:framePr` in the document defaults, the sizeless top-left one Apple Pages writes,
 /// frames no paragraph, as in Word: a header's title and the body's text stay in the text instead
 /// of moving to the page's corner, and the default isn't written back. The defaults' other

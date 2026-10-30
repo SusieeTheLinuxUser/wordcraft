@@ -287,7 +287,9 @@ impl Reader<'_> {
                             .run_ranges()
                             .find(|(range, _)| p.text.get(range.clone()).is_some_and(|t| t.chars().any(|c| c != wordcraft_doc::para::OBJ)))
                             .map_or((None, None), |(_, props)| (props.size, props.size_cs));
-                        for r in &mut first.runs {
+                        // Only runs at the letter's enlarged size: a frame run with a size of its own keeps it.
+                        let cap_size = first.runs.first().map(|r| (r.props.size, r.props.size_cs));
+                        for r in first.runs.iter_mut().filter(|r| Some((r.props.size, r.props.size_cs)) == cap_size) {
                             r.props.size = text_size;
                             r.props.size_cs = text_size_cs;
                         }
