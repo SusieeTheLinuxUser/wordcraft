@@ -3560,6 +3560,20 @@ fn a_drop_cap_frames_other_sizes_are_kept() {
     assert_eq!(size("e"), Some(Some(10.0)), "{:?}", p[0].runs);
 }
 
+/// #3000: a bookmark opening the drop cap's own frame is a sizeless run before the letter; the
+/// letter is still recognised by its enlarged size and takes the text's size back.
+#[test]
+fn a_drop_caps_letter_after_a_bookmark_in_its_frame_takes_the_texts_size() {
+    let d = read_body(
+        r#"<w:p><w:pPr><w:framePr w:dropCap="drop" w:lines="3" w:wrap="around" w:vAnchor="text" w:hAnchor="text"/></w:pPr><w:bookmarkStart w:id="2" w:name="cap"/><w:r><w:rPr><w:sz w:val="88"/></w:rPr><w:t>B</w:t></w:r><w:bookmarkEnd w:id="2"/></w:p>
+        <w:p><w:r><w:rPr><w:sz w:val="24"/></w:rPr><w:t>efore we start</w:t></w:r></w:p>"#,
+    );
+    let p = paras(&d);
+    assert_eq!(p.len(), 1);
+    let letter = p[0].run_ranges().find(|(range, _)| p[0].text.get(range.clone()) == Some("B")).map(|(_, props)| props.size);
+    assert_eq!(letter, Some(Some(12.0)), "the letter takes the text's size, not its enlarged one: {:?}", p[0].runs);
+}
+
 /// #2360: a `w:framePr` in the document defaults, the sizeless top-left one Apple Pages writes,
 /// frames no paragraph, as in Word: a header's title and the body's text stay in the text instead
 /// of moving to the page's corner, and the default isn't written back. The defaults' other

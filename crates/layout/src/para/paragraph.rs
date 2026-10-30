@@ -243,6 +243,8 @@ impl<'a> Shaped<'a> {
         let Some(first) = text.get(..c.len_utf8()) else { return 0 };
         let mut big = (**rc).clone();
         big.size = wordcraft_doc::resolve::drop_cap_size(rc.size, rp.drop_cap);
+        // An Arabic or other complex-script letter is shaped at `size_cs`.
+        big.size_cs = wordcraft_doc::resolve::drop_cap_size(rc.size_cs, rp.drop_cap);
         if let Some(f) = &rp.drop_cap_font {
             big.font = f.clone();
         }
